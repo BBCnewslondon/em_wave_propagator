@@ -7,6 +7,7 @@ Visualize a transverse electromagnetic plane wave with perpendicular electric an
 - 3D animation highlighting propagation direction (x) with oscillating `E` (y) and `B` (z) fields
 - Configurable wavelength, amplitude, propagation speed, and duration
 - Support for different propagation mediums (vacuum, air, water, glass, diamond)
+- Multiple polarization types: linear (y/z), circular (right/left-handed)
 - Comparison mode to visualize waves in multiple mediums simultaneously
 - Minimal CLI with optional export to video/gif
 - Pure Python + Matplotlib, tested with `pytest`
@@ -21,6 +22,9 @@ python main.py
 
 # Animate wave in water
 python main.py --medium water
+
+# Show circular polarization
+python main.py --polarization circular-right
 
 # Compare waves in all mediums simultaneously
 python main.py --compare

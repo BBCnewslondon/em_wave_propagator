@@ -62,12 +62,16 @@ def plane_wave_snapshot(
     wavelength: float = 1.0,
     electric_amplitude: float = 1.0,
     medium: Medium = VACUUM,
+    polarization: str = "linear-y",
 ) -> FieldSnapshot:
     """Return the electric and magnetic fields for a monochromatic plane wave.
 
-    The wave propagates along +x, the electric field oscillates along +y, and the
-    magnetic field oscillates along +z. The amplitudes follow the relation
-    |B| = |E| / v where v is the propagation speed in the medium.
+    The wave propagates along +x. The polarization determines the orientation
+    of the electric field:
+    - "linear-y": E along +y, B along +z (default)
+    - "linear-z": E along +z, B along -y
+    - "circular-right": right-handed circular polarization
+    - "circular-left": left-handed circular polarization
 
     Parameters
     ----------
@@ -83,10 +87,15 @@ def plane_wave_snapshot(
         Peak amplitude of the electric field in arbitrary units.
     medium:
         The propagation medium.
+    polarization:
+        Polarization type: "linear-y", "linear-z", "circular-right", "circular-left".
     """
 
     if positions.ndim != 1:
         raise ValueError("positions must be a 1D array of x-coordinates")
+
+    if polarization not in ["linear-y", "linear-z", "circular-right", "circular-left"]:
+        raise ValueError(f"Invalid polarization: {polarization}")
 
     k = 2 * np.pi / wavelength
     propagation_speed = medium.propagation_speed_relative
@@ -96,9 +105,28 @@ def plane_wave_snapshot(
     electric = np.zeros((3, positions.size))
     magnetic = np.zeros((3, positions.size))
 
-    electric[1] = electric_amplitude * np.sin(argument)
-    magnetic_amplitude = electric_amplitude / propagation_speed
-    magnetic[2] = magnetic_amplitude * np.sin(argument)
+    if polarization == "linear-y":
+        # E along y, B along z
+        electric[1] = electric_amplitude * np.sin(argument)
+        magnetic[2] = (electric_amplitude / propagation_speed) * np.sin(argument)
+    elif polarization == "linear-z":
+        # E along z, B along -y
+        electric[2] = electric_amplitude * np.sin(argument)
+        magnetic[1] = -(electric_amplitude / propagation_speed) * np.sin(argument)
+    elif polarization == "circular-right":
+        # Right-handed circular: E rotates clockwise when viewed toward the source
+        # For +x propagation: E_y = E0 cos(θ), E_z = E0 sin(θ) where θ = kx - ωt
+        electric[1] = electric_amplitude * np.cos(argument)      # Ey
+        electric[2] = electric_amplitude * np.sin(argument)      # Ez
+        # B = (1/v) k̂ × E, for k̂ = x̂, B_y = -E_z/v, B_z = E_y/v
+        magnetic[1] = -(electric_amplitude / propagation_speed) * np.sin(argument)  # By
+        magnetic[2] = (electric_amplitude / propagation_speed) * np.cos(argument)   # Bz
+    elif polarization == "circular-left":
+        # Left-handed circular: E rotates counterclockwise when viewed toward the source
+        electric[1] = electric_amplitude * np.cos(argument)      # Ey
+        electric[2] = -electric_amplitude * np.sin(argument)     # Ez (negative for left-handed)
+        magnetic[1] = (electric_amplitude / propagation_speed) * np.sin(argument)   # By
+        magnetic[2] = (electric_amplitude / propagation_speed) * np.cos(argument)   # Bz
 
     return FieldSnapshot(positions=positions, electric=electric, magnetic=magnetic)
 

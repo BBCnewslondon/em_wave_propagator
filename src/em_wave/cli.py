@@ -43,6 +43,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="vacuum",
         help="Propagation medium.",
     )
+    parser.add_argument(
+        "--polarization",
+        choices=["linear-y", "linear-z", "circular-right", "circular-left"],
+        default="linear-y",
+        help="Wave polarization type.",
+    )
     parser.add_argument("--phase", type=float, default=0.0, help="Initial phase offset in radians.")
     parser.add_argument(
         "--points",
@@ -90,6 +96,7 @@ def main(arguments: Optional[list[str]] = None) -> None:
             electric_amplitude=args.amplitude,
             mediums=mediums_list,
             phase=args.phase,
+            polarization=args.polarization,
             num_points=args.points,
             save_path=str(args.save) if args.save is not None else None,
             show=not args.no_show,
@@ -104,6 +111,7 @@ def main(arguments: Optional[list[str]] = None) -> None:
             electric_amplitude=args.amplitude,
             medium=get_medium(args.medium),
             phase=args.phase,
+            polarization=args.polarization,
             num_points=args.points,
             save_path=str(args.save) if args.save is not None else None,
             show=not args.no_show,

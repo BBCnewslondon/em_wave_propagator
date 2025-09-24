@@ -23,6 +23,7 @@ def build_em_wave_animation(
     medium: Medium = VACUUM,
     mediums: Optional[list[Medium]] = None,
     phase: float = 0.0,
+    polarization: str = "linear-y",
     save_path: Optional[str] = None,
 ) -> Tuple[Figure, animation.FuncAnimation]:
     """Create a Matplotlib animation depicting an EM plane wave.
@@ -90,9 +91,19 @@ def build_em_wave_animation(
     max_magnetic_amplitude = max(med.propagation_speed_relative for med in display_mediums)
     padding = 0.15 * electric_amplitude
     ax.set_xlim(start, stop)
-    ax.set_ylim(-electric_amplitude - padding, electric_amplitude + padding)
-    ax.set_zlim(-electric_amplitude / max_magnetic_amplitude - padding, 
-                electric_amplitude / max_magnetic_amplitude + padding)
+    
+    if polarization == "linear-z":
+        ax.set_ylim(-electric_amplitude / max_magnetic_amplitude - padding, 
+                    electric_amplitude / max_magnetic_amplitude + padding)
+        ax.set_zlim(-electric_amplitude - padding, electric_amplitude + padding)
+    elif polarization.startswith("circular"):
+        # For circular polarization, E moves in y-z plane
+        ax.set_ylim(-electric_amplitude - padding, electric_amplitude + padding)
+        ax.set_zlim(-electric_amplitude - padding, electric_amplitude + padding)
+    else:  # linear-y (default)
+        ax.set_ylim(-electric_amplitude - padding, electric_amplitude + padding)
+        ax.set_zlim(-electric_amplitude / max_magnetic_amplitude - padding, 
+                    electric_amplitude / max_magnetic_amplitude + padding)
 
     time_text = ax.text2D(0.02, 0.95, "", transform=ax.transAxes)
 
@@ -113,14 +124,33 @@ def build_em_wave_animation(
                 wavelength=wavelength,
                 electric_amplitude=electric_amplitude,
                 medium=med,
+                polarization=polarization,
             )
 
-            e_y = snapshot.electric[1]
-            b_z = snapshot.magnetic[2]
-
-            zeros = np.zeros_like(positions)
-            e_line.set_data_3d(positions, e_y, zeros)
-            b_line.set_data_3d(positions, zeros, b_z)
+            if polarization.startswith("linear"):
+                # For linear polarization, plot E and B in their respective planes
+                if polarization == "linear-y":
+                    e_y = snapshot.electric[1]  # Ey
+                    b_z = snapshot.magnetic[2]  # Bz
+                    zeros = np.zeros_like(positions)
+                    e_line.set_data_3d(positions, e_y, zeros)
+                    b_line.set_data_3d(positions, zeros, b_z)
+                elif polarization == "linear-z":
+                    e_z = snapshot.electric[2]  # Ez
+                    b_y = snapshot.magnetic[1]  # By
+                    zeros = np.zeros_like(positions)
+                    e_line.set_data_3d(positions, zeros, e_z)
+                    b_line.set_data_3d(positions, b_y, zeros)
+            else:  # circular polarization
+                # For circular polarization, show the projection in y-z plane
+                # Plot E vector as a combination of Ey and Ez
+                e_y = snapshot.electric[1]
+                e_z = snapshot.electric[2]
+                b_y = snapshot.magnetic[1]
+                b_z = snapshot.magnetic[2]
+                zeros = np.zeros_like(positions)
+                e_line.set_data_3d(positions, e_y, e_z)
+                b_line.set_data_3d(positions, b_y, b_z)
 
         time_text.set_text(f"t = {time:.2f} s")
         return e_lines + b_lines + [time_text]
